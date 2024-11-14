@@ -9,7 +9,7 @@
 /* eslint-disable jsx-a11y/control-has-associated-label */
 import React, { useEffect, useState } from 'react';
 import { UserWarning } from './UserWarning';
-import { deleteTodo, getTodos, USER_ID } from './api/todos';
+import { deleteTodo, getTodos, updateTodo, USER_ID } from './api/todos';
 import { Todo } from './types/Todo';
 
 export const App: React.FC = () => {
@@ -51,7 +51,26 @@ export const App: React.FC = () => {
   }
 
 
+  async function handleUpdateTodoStatus(todoId: number) {
+    try {
+      const todo = todos.find((t) => t.id === todoId);
+      setEditingTodoId([...editingTodoId, todoId]);
+      if (!todo) {
+        throw new Error('Todo not found');
+      }
+      const updatedTodo:Todo = { ...todo, completed: !todo.completed };
+      const updatedTodoFromServer = await updateTodo(updatedTodo);
+      const newTodos = todos.map((t) => (t.id === todoId ? updatedTodoFromServer : t));
+      setEditingTodoId(editingTodoId.filter((id) => id !== todoId));
+      setTodos(newTodos);
+      setFilteredTodos(newTodos);
 
+
+    } catch (e) {
+      setError('Unable to update a todo');
+      setEditingTodoId(editingTodoId.filter((id) => id !== todoId));
+    }
+  }
   async function handleRemoveTodo(todoId: number) {
     try {
       setEditingTodoId([...editingTodoId, todoId]);
@@ -60,6 +79,7 @@ export const App: React.FC = () => {
       loadAllTodos();
     } catch (e) {
       setError('Unable to delete a todo');
+      setEditingTodoId(editingTodoId.filter((id) => id !== todoId));
     }
   }
 
@@ -104,13 +124,14 @@ export const App: React.FC = () => {
         <section className="todoapp__main" data-cy="TodoList">
           {
             filteredTodos.map((todo) => (
-              <div key={todo.id} data-cy="Todo" className="todo completed">
+              <div key={todo.id} data-cy="Todo" className={`todo ${todo.completed ? 'completed' : ''}`}>
               <label className="todo__status-label">
                 <input
                   data-cy="TodoStatus"
                   type="checkbox"
                   className="todo__status"
-                  checked
+                  checked={todo.completed}
+                  onClick={() => handleUpdateTodoStatus(todo.id)}
                 />
               </label>
 
