@@ -36,6 +36,41 @@ export const App: React.FC = () => {
 
   }
 
+  async function handleToggleAllTodos() {
+    try {
+      const areAllTodosCompleted = todos.every((t) => t.completed);
+      const areAlltodosIncomplete = todos.every((t) => !t.completed);
+      if(areAllTodosCompleted) {
+        setEditingTodoId([...editingTodoId, ...todos.map((t) => t.id)]);
+        const updatedTodos = todos.map((t) => ({...t, completed: false}));
+        await Promise.all(updatedTodos.map((t) => updateTodo(t)));
+        setEditingTodoId([]);
+        loadAllTodos();
+        return;
+      } else if (areAlltodosIncomplete) {
+        setEditingTodoId([...editingTodoId, ...todos.map((t) => t.id)]);
+        const updatedTodos = todos.map((t) => ({...t, completed: true}));
+        await Promise.all(updatedTodos.map((t) => updateTodo(t)));
+        setEditingTodoId([]);
+        loadAllTodos();
+        return;
+      } else {
+        const todosToEdit = todos.filter((t) => !t.completed);
+        setEditingTodoId([...editingTodoId, ...todosToEdit.map((t) => t.id)]);
+        const updatedTodos = todosToEdit.map((t) => ({...t, completed: true}));
+        await Promise.all(updatedTodos.map((t) => updateTodo(t)));
+        setEditingTodoId([]);
+        loadAllTodos();
+        return;
+      }
+
+    } catch (e) {
+      setError('Unable to update todo');
+      setEditingTodoId([]);
+      loadAllTodos();
+    }
+  };
+
   function handleNewTodoTitle(e: React.ChangeEvent<HTMLInputElement>) {
     setNewTodoTitle(e.target.value);
   }
@@ -208,6 +243,7 @@ export const App: React.FC = () => {
           todos.length > 0 && (
             <button
             type="button"
+            onClick={() => handleToggleAllTodos()}
             className={`todoapp__toggle-all ${todos.every((t) => t.completed) ? 'active' : ''}`}
             data-cy="ToggleAllButton"
           />
