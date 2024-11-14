@@ -1,10 +1,78 @@
+/* eslint-disable max-len */
+/* eslint-disable padding-line-between-statements */
+/* eslint-disable @typescript-eslint/semi */
+/* eslint-disable @typescript-eslint/indent */
+/* eslint-disable react-hooks/rules-of-hooks */
+/* eslint-disable prettier/prettier */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable jsx-a11y/label-has-associated-control */
 /* eslint-disable jsx-a11y/control-has-associated-label */
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { UserWarning } from './UserWarning';
-import { USER_ID } from './api/todos';
+import { deleteTodo, getTodos, USER_ID } from './api/todos';
+import { Todo } from './types/Todo';
 
 export const App: React.FC = () => {
+
+  const [todos, setTodos] = useState<Todo[]>([
+    {
+      id: 1,
+      userId: 1,
+      title: 'Completed Todo',
+      completed: true,
+    },
+    {
+      id: 2,
+      userId: 1,
+      title: 'Not Completed Todo',
+      completed: false,
+    },
+    {
+      id: 4,
+      userId: 1,
+      title: 'Todo is being saved now',
+      completed: false,
+    },
+  ]);
+  const [filteredTodos, setFilteredTodos] = useState<Todo[]>([]);
+  const [filter, setFilter] = useState('all');
+  const [error, setError] = useState<string | null>(null);
+  const [editingTodoId, setEditingTodoId] = useState<number[]>([]);
+
+  async function loadAllTodos() {
+    try {
+      const loadedTodos = await getTodos();
+      setTodos(loadedTodos);
+      setFilteredTodos(loadedTodos);
+    } catch (e) {
+      setError('Unable to load todos');
+    }
+
+  }
+
+
+
+  async function handleRemoveTodo(todoId: number) {
+    try {
+      setEditingTodoId([...editingTodoId, todoId]);
+      const deletedTodo = await deleteTodo(todoId);
+      setEditingTodoId(editingTodoId.filter((id) => id !== todoId));
+      loadAllTodos();
+    } catch (e) {
+      setError('Unable to delete a todo');
+    }
+  }
+
+  useEffect(() => {
+    loadAllTodos();
+  },[]);
+
+  useEffect(() => {
+      setTimeout(()=>{
+        setError(null)
+      },3000)
+  },[error])
+
   if (!USER_ID) {
     return <UserWarning />;
   }
@@ -34,6 +102,42 @@ export const App: React.FC = () => {
         </header>
 
         <section className="todoapp__main" data-cy="TodoList">
+          {
+            filteredTodos.map((todo) => (
+              <div key={todo.id} data-cy="Todo" className="todo completed">
+              <label className="todo__status-label">
+                <input
+                  data-cy="TodoStatus"
+                  type="checkbox"
+                  className="todo__status"
+                  checked
+                />
+              </label>
+
+              <span data-cy="TodoTitle" className="todo__title">
+                {todo.title}
+              </span>
+
+              {/* Remove button appears only on hover */}
+              <button onClick={() => handleRemoveTodo(todo.id)} type="button" className="todo__remove" data-cy="TodoDelete">
+                ×
+              </button>
+
+              {/* overlay will cover the todo while it is being deleted or updated */}
+            <div data-cy="TodoLoader" className={`modal overlay ${editingTodoId.includes(todo.id) ? "is-active" : ''}`}>
+                <div className="modal-background has-background-white-ter" />
+                <div className="loader" />
+              </div>
+            </div>
+
+            ))
+          }
+
+
+          <hr /> {/* remove this line after */}
+          Examples of different todo states {/* remove this line after */}
+          <hr /> {/* remove this line after */}
+
           {/* This is a completed todo */}
           <div data-cy="Todo" className="todo completed">
             <label className="todo__status-label">
@@ -55,7 +159,7 @@ export const App: React.FC = () => {
             </button>
 
             {/* overlay will cover the todo while it is being deleted or updated */}
-            <div data-cy="TodoLoader" className="modal overlay">
+          <div data-cy="TodoLoader" className="modal overlay is-active">
               <div className="modal-background has-background-white-ter" />
               <div className="loader" />
             </div>
