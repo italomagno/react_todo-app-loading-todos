@@ -10,6 +10,8 @@
 
 import React from 'react';
 import { Todo } from '../types/Todo';
+import { CSSTransition, TransitionGroup } from 'react-transition-group';
+
 
 
 interface TodoListProps {
@@ -30,15 +32,23 @@ export function TodoList({
     handleSubmitForm,
     editingTodoId,
     selectedTodo,
-    setSelectedTodo
+    setSelectedTodo,
   }: TodoListProps) {
 
-
   return (
-    <section className="todoapp__main" data-cy="TodoList">
+    <TransitionGroup component={null}>
       {
         filteredTodos.map((todo) => (
-          <div key={todo.id} data-cy="Todo" className={`todo ${todo.completed ? 'completed' : ''}`}>
+          <CSSTransition
+          key={todo.id}
+          timeout={300}
+          classNames="item"
+          unmountOnExit
+          appear
+          enter
+          exit
+        >
+          <div data-cy="Todo" className={`todo ${todo.completed ? 'completed' : ''}`}>
             <label className="todo__status-label">
               <input
                 data-cy="TodoStatus"
@@ -79,11 +89,12 @@ export function TodoList({
               <div className="loader" />
             </div>
           </div>
+          </CSSTransition>
 
         ))
       }
+</TransitionGroup>
 
-    </section>
   )
 
 };
