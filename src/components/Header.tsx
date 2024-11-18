@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/indent */
+/* eslint-disable @typescript-eslint/no-unused-expressions */
 import { useEffect, useRef, useState } from 'react';
 import { Todo } from '../types/Todo';
 import { addTodo, updateTodo } from '../api/todos';
@@ -5,7 +7,6 @@ import { addTodo, updateTodo } from '../api/todos';
 interface HeaderProps {
   todos: Todo[];
   setEditingTodosId: (ids: number[]) => void;
-  loadAllTodos: () => void;
   setError: (error: string) => void;
   editingTodosId: number[];
   setTodos: (todos: Todo[]) => void;
@@ -19,7 +20,6 @@ export function Header({
   setEditingTodosId,
   setTodos,
   setFilteredTodos,
-  loadAllTodos,
   setError,
   editingTodosId,
 }: HeaderProps) {
@@ -77,23 +77,39 @@ export function Header({
     }
   }
 
-  async function handleToggleAllTodos() {
-    try {
-      const areAllTodosCompleted = todos.every(t => t.completed);
-      const updatedTodos = todos.map(t => ({
-        ...t,
-        completed: !areAllTodosCompleted,
-      }));
+  function handleToggleAllTodos() {
+    const successfulUpdatedTodo: number[] = [];
+    const hasAllSameStatus = todos.every(t => t.completed);
+    const todosToUpdate = hasAllSameStatus
+      ? todos
+      : todos.filter(t => !t.completed);
 
-      setEditingTodosId([...editingTodosId, ...todos.map(t => t.id)]);
-      await Promise.all(updatedTodos.map(t => updateTodo(t)));
+    setEditingTodosId([...editingTodosId, ...todosToUpdate.map(t => t.id)]);
+
+    const updatePromises = todosToUpdate.map(todo =>
+      updateTodo({
+        ...todo,
+        completed: !todo.completed,
+      })
+        .then(res => {
+          successfulUpdatedTodo.push(res.id);
+        })
+        .catch(() => {
+          setError('Unable to update todo');
+        }),
+    );
+
+    Promise.all(updatePromises).then(() => {
+      const newTodosUpdated = todos.map(t =>
+        successfulUpdatedTodo.includes(t.id)
+          ? { ...t, completed: !t.completed }
+          : t,
+      );
+
+      setTodos(newTodosUpdated);
+      setFilteredTodos(newTodosUpdated);
       setEditingTodosId([]);
-      loadAllTodos();
-    } catch (e) {
-      setError('Unable to update todo');
-      setEditingTodosId([]);
-      loadAllTodos();
-    }
+    });
   }
 
   useEffect(() => {
